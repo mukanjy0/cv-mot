@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local datasets and model weights can be large.
+VisDrone2019-MOT-val/
+*.pt
+
+# Generated experiment artifacts.
+outputs/tracks/*/
+outputs/videos/*/

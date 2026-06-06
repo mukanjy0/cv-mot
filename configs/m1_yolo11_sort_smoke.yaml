@@ -1,0 +1,24 @@
+name: m1_yolo11_sort_smoke
+
+detector:
+  type: ultralytics_yolo
+  model_path: yolo11n.pt
+  imgsz: 960
+  conf: 0.25
+  iou: 0.70
+  device: auto
+  half: false
+  coco_to_visdrone:
+    0: 1
+    2: 4
+  allowed_classes: [1, 4]
+
+tracker:
+  type: sort
+  max_age: 30
+  min_hits: 3
+  iou_threshold: 0.3
+
+output:
+  tracks_dir: outputs/tracks
+  videos_dir: outputs/videos
