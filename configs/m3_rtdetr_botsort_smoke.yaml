@@ -23,8 +23,9 @@ tracker:
   proximity_thresh: 0.50
   appearance_thresh: 0.25
   with_reid: false
-  gmc_method: sparseOptFlow
-  fuse_score: true
+  cmc_method: sof
+  frame_rate: 30
+  fuse_first_associate: true
 
 output:
   tracks_dir: outputs/tracks
