@@ -14,7 +14,9 @@ The pipeline is intentionally split into separate stages:
 
 The project includes Method 1 (YOLOv11 + SORT), Method 2 (YOLO26 +
 ByteTrack), and Method 3 (RT-DETR + BoT-SORT), plus representative benchmark
-and MOT evaluation wrappers. SAHI and hyperparameter tuning are not included.
+and MOT evaluation wrappers. A bounded overnight queue adds compact M2/M3
+configuration screening and optional best-effort SAHI inference; it does not
+train models or perform an unrestricted hyperparameter search.
 
 ## Dataset Layout
 
@@ -52,6 +54,13 @@ ByteTrack and BoT-SORT use optional BoxMOT dependencies:
 
 ```bash
 python -m pip install -r requirements-trackers.txt
+```
+
+Method 4 SAHI experiments use a separate optional dependency so installation
+failures do not block Methods 1-3:
+
+```bash
+python -m pip install -r requirements-sahi.txt
 ```
 
 Use Python 3.12 or 3.13 for BoxMOT. Its published dependency constraints are
@@ -106,6 +115,23 @@ python -m src.experiments.run_benchmark \
 Benchmark outputs are saved under `outputs/benchmarks/<run_id>/`. See
 [`docs/evaluation.md`](docs/evaluation.md) for the full output layout,
 evaluation-only commands, metric definitions, and explicit sequence selection.
+
+## Overnight Experiments
+
+Validate the staged queue without running inference:
+
+```bash
+python -m src.experiments.run_overnight \
+  --queue docs/overnight_experiments/experiment_queue.yaml \
+  --dataset-root VisDrone2019-MOT-val \
+  --output-dir outputs/overnight/dry_run_check \
+  --dry-run
+```
+
+The queue is resumable, writes per-attempt logs and metadata, and treats SAHI
+as non-fatal. See
+[`docs/overnight_experiments/plan.md`](docs/overnight_experiments/plan.md) and
+[`docs/overnight_experiments/commands.md`](docs/overnight_experiments/commands.md).
 
 ## Classes
 

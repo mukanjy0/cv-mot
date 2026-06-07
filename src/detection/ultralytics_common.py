@@ -5,19 +5,8 @@ from typing import Any
 import numpy as np
 
 from src.core.bbox import as_xyxy_array
+from src.core.device import resolve_device
 from src.core.types import Detection
-
-
-def resolve_device(device: str | None) -> str | None:
-    """Resolve config device value for Ultralytics predict calls."""
-
-    if device is None or device == "auto":
-        try:
-            import torch
-        except ImportError:
-            return "cpu"
-        return "cuda" if torch.cuda.is_available() else "cpu"
-    return device
 
 
 def parse_class_mapping(config: dict[str, Any]) -> tuple[dict[int, int], set[int]]:

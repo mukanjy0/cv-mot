@@ -11,6 +11,12 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from src.core.config import load_config
+from src.core.device import (
+    apply_device_to_detector_configs,
+    device_diagnostics,
+    format_device_diagnostics,
+    resolve_device,
+)
 from src.data.visdrone import VisDroneSequence
 from src.evaluation.evaluate_mot import evaluate_mot
 from src.experiments.run_sequence import run_sequence
@@ -90,15 +96,23 @@ def run_benchmark(
     output_root: str | Path = "outputs/benchmarks",
     run_id: str | None = None,
     video_fps: float = 30.0,
+    device: str = "auto",
     command: Sequence[str] | None = None,
 ) -> Path:
     dataset_path = Path(dataset_root).resolve()
-    resolved_configs = _validate_inputs(
+    loaded_configs = _validate_inputs(
         dataset_path,
         [Path(path) for path in config_paths],
         sequences,
         max_frames,
     )
+    resolved_device = resolve_device(device)
+    diagnostics = device_diagnostics(device)
+    resolved_configs = [
+        (path, apply_device_to_detector_configs(config, resolved_device))
+        for path, config in loaded_configs
+    ]
+    print(format_device_diagnostics(diagnostics))
     benchmark_id = run_id or _default_run_id()
     output_dir = Path(output_root).resolve() / benchmark_id
     if output_dir.exists():
@@ -118,6 +132,8 @@ def run_benchmark(
         "output_root": str(Path(output_root).resolve()),
         "run_id": benchmark_id,
         "video_fps": video_fps,
+        "device": device,
+        "resolved_device": resolved_device,
     }
     metadata: dict[str, Any] = {
         "timestamp": _timestamp(),
@@ -130,6 +146,7 @@ def run_benchmark(
         "config_paths": [str(path) for path, _ in resolved_configs],
         "output_directory": str(output_dir),
         "git_commit": git_commit,
+        "device_environment": diagnostics,
         "runs": [],
     }
     metadata_path = output_dir / "metadata.json"
@@ -153,6 +170,7 @@ def run_benchmark(
                     video_fps=video_fps,
                     tracks_path=tracks_path,
                     video_path=video_path,
+                    device=resolved_device,
                 )
                 wall_runtime = time.perf_counter() - wall_start
                 run_metadata = {
@@ -176,6 +194,8 @@ def run_benchmark(
                     "tracks_path": str(tracks_path.resolve()),
                     "video_path": str(video_path.resolve()) if save_video else None,
                     "git_commit": git_commit,
+                    "device_environment": diagnostics,
+                    "resolved_device": resolved_device,
                 }
                 _write_json(run_dir / "metadata.json", run_metadata)
                 metadata["runs"].append(run_metadata)
@@ -226,6 +246,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", default="outputs/benchmarks")
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--video-fps", type=float, default=30.0)
+    parser.add_argument(
+        "--device",
+        choices=["auto", "cpu", "cuda:0", "mps"],
+        default="auto",
+        help="Inference device. auto prefers CUDA, then MPS, then CPU.",
+    )
     return parser.parse_args()
 
 
@@ -241,6 +267,7 @@ def main() -> None:
         output_root=args.output_root,
         run_id=args.run_id,
         video_fps=args.video_fps,
+        device=args.device,
         command=[sys.executable, "-m", "src.experiments.run_benchmark", *sys.argv[1:]],
     )
     print(f"\nBenchmark outputs: {output_dir}")

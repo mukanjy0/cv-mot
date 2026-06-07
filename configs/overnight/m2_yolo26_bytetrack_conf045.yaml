@@ -1,0 +1,20 @@
+name: m2_yolo26_bytetrack_conf045
+
+detector:
+  type: ultralytics_yolo
+  model_path: yolo26n.pt
+  imgsz: 960
+  conf: 0.45
+  iou: 0.70
+  device: auto
+  half: false
+  coco_to_visdrone: {0: 1, 2: 4}
+  allowed_classes: [1, 4]
+
+tracker:
+  type: bytetrack
+  min_conf: 0.10
+  track_thresh: 0.25
+  match_thresh: 0.80
+  track_buffer: 30
+  frame_rate: 30

@@ -13,6 +13,7 @@ outputs/tracks/*/
 outputs/videos/*/
 outputs/benchmarks/*/
 outputs/evaluation/*/
+outputs/overnight/*/
 
 # macOS
 .DS_Store

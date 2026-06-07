@@ -6,10 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from src.core.config import load_config
+from src.core.device import apply_device_to_detector_configs, resolve_device
 from src.core.types import Track
 from src.data.mot_io import write_tracks_mot
 from src.data.visdrone import VisDroneSequence, list_sequence_names
 from src.detection.base import Detector
+from src.detection.sahi_ultralytics_yolo import SahiUltralyticsYoloDetector
 from src.detection.ultralytics_rtdetr import UltralyticsRtDetrDetector
 from src.detection.ultralytics_yolo import UltralyticsYoloDetector
 from src.tracking.base import Tracker
@@ -22,6 +24,8 @@ def build_detector(config: dict[str, Any]) -> Detector:
     detector_type = config.get("type")
     if detector_type == "ultralytics_yolo":
         return UltralyticsYoloDetector.from_config(config)
+    if detector_type == "sahi_ultralytics_yolo":
+        return SahiUltralyticsYoloDetector.from_config(config)
     if detector_type == "ultralytics_rtdetr":
         return UltralyticsRtDetrDetector.from_config(config)
     raise ValueError(f"Unsupported detector type: {detector_type}")
@@ -47,8 +51,11 @@ def run_sequence(
     video_fps: float = 30.0,
     tracks_path: str | Path | None = None,
     video_path: str | Path | None = None,
+    device: str | None = None,
 ) -> dict[str, Any]:
     config = load_config(config_path)
+    if device is not None:
+        config = apply_device_to_detector_configs(config, resolve_device(device))
     experiment_name = config["name"]
 
     sequence = VisDroneSequence(dataset_root, sequence_name, max_frames=max_frames)

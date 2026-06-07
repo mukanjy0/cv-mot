@@ -36,6 +36,7 @@ class RunBenchmarkTest(unittest.TestCase):
             )
 
             def fake_run_sequence(**kwargs: object) -> dict[str, object]:
+                self.assertEqual(kwargs["device"], "mps")
                 tracks_path = Path(str(kwargs["tracks_path"]))
                 tracks_path.parent.mkdir(parents=True)
                 tracks_path.write_text(
@@ -61,6 +62,7 @@ class RunBenchmarkTest(unittest.TestCase):
                     max_frames=1,
                     output_root=root / "benchmarks",
                     run_id="test-run",
+                    device="mps",
                     command=["python", "-m", "src.experiments.run_benchmark"],
                 )
 
@@ -72,12 +74,19 @@ class RunBenchmarkTest(unittest.TestCase):
             self.assertEqual(run_metadata["num_frames_processed"], 1)
             self.assertEqual(run_metadata["fps"], 4.0)
             self.assertEqual(run_metadata["resolved_config"]["name"], "method_a")
+            self.assertEqual(
+                run_metadata["resolved_config"]["detector"]["device"], "mps"
+            )
+            self.assertEqual(run_metadata["resolved_device"], "mps")
 
             benchmark_metadata = json.loads(
                 (output_dir / "metadata.json").read_text(encoding="utf-8")
             )
             self.assertEqual(benchmark_metadata["status"], "completed")
             self.assertEqual(benchmark_metadata["selected_sequences"], [sequence])
+            self.assertEqual(
+                benchmark_metadata["device_environment"]["resolved_device"], "mps"
+            )
 
 
 if __name__ == "__main__":

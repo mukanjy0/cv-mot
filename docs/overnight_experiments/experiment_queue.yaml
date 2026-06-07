@@ -1,0 +1,139 @@
+version: 1
+
+all_sequences:
+  - uav0000086_00000_v
+  - uav0000117_02622_v
+  - uav0000137_00458_v
+  - uav0000182_00000_v
+  - uav0000268_05773_v
+  - uav0000305_00000_v
+  - uav0000339_00001_v
+
+stages:
+  - id: smoke_test
+    kind: benchmark
+    fatal: true
+    configs:
+      - configs/m1_yolo11_sort_smoke.yaml
+      - configs/m2_yolo26_bytetrack_smoke.yaml
+      - configs/m3_rtdetr_botsort_smoke.yaml
+    sequences:
+      - uav0000117_02622_v
+    max_frames: 20
+    save_video: false
+    evaluate: true
+
+  - id: full_baseline_m1_m2_m3
+    kind: benchmark
+    fatal: true
+    configs:
+      - configs/m1_yolo11_sort_smoke.yaml
+      - configs/m2_yolo26_bytetrack_smoke.yaml
+      - configs/m3_rtdetr_botsort_smoke.yaml
+    sequences: all
+    max_frames: null
+    save_video: false
+    evaluate: true
+
+  - id: tune_m3
+    kind: tuning
+    fatal: false
+    selection_rule: m3
+    configs:
+      - configs/m3_rtdetr_botsort_smoke.yaml
+      - configs/overnight/m3_rtdetr_botsort_conf035.yaml
+      - configs/overnight/m3_rtdetr_botsort_conf045.yaml
+      - configs/overnight/m3_rtdetr_botsort_conf055.yaml
+      - configs/overnight/m3_rtdetr_botsort_conf045_strict_new.yaml
+      - configs/overnight/m3_rtdetr_botsort_conf055_strict_new.yaml
+    sequences:
+      - uav0000117_02622_v
+    max_frames: 300
+    save_video: false
+    evaluate: true
+    promote_top: 2
+    promotion_sequences: all
+    promotion_max_frames: null
+    promotion_save_video: false
+    promotion_evaluate: true
+
+  - id: tune_m2
+    kind: tuning
+    fatal: false
+    selection_rule: m2
+    configs:
+      - configs/m2_yolo26_bytetrack_smoke.yaml
+      - configs/overnight/m2_yolo26_bytetrack_conf025.yaml
+      - configs/overnight/m2_yolo26_bytetrack_conf035.yaml
+      - configs/overnight/m2_yolo26_bytetrack_conf045.yaml
+      - configs/overnight/m2_yolo26_bytetrack_conf035_low_min.yaml
+    sequences:
+      - uav0000117_02622_v
+    max_frames: 300
+    save_video: false
+    evaluate: true
+    promote_top: 2
+    promotion_sequences: all
+    promotion_max_frames: null
+    promotion_save_video: false
+    promotion_evaluate: true
+
+  - id: sahi_m4_best_effort
+    kind: tuning
+    fatal: false
+    selection_rule: m4
+    configs:
+      - path: configs/overnight/m4_sahi_m2_slice640_overlap020.yaml
+        inherit_detector_conf_from: tune_m2
+        inherit_fallback_config: configs/m2_yolo26_bytetrack_smoke.yaml
+      - path: configs/overnight/m4_sahi_m2_slice640_overlap030.yaml
+        inherit_detector_conf_from: tune_m2
+        inherit_fallback_config: configs/m2_yolo26_bytetrack_smoke.yaml
+      - path: configs/overnight/m4_sahi_m2_slice512_overlap020.yaml
+        inherit_detector_conf_from: tune_m2
+        inherit_fallback_config: configs/m2_yolo26_bytetrack_smoke.yaml
+      - path: configs/overnight/m4_sahi_m2_slice640_overlap020_strict.yaml
+        inherit_detector_conf_from: tune_m2
+        inherit_fallback_config: configs/m2_yolo26_bytetrack_smoke.yaml
+        confidence_offset: 0.10
+    sequences:
+      - uav0000117_02622_v
+    max_frames: 100
+    save_video: false
+    evaluate: true
+    promote_top: 1
+    promotion_sequences: all
+    promotion_max_frames: null
+    promotion_save_video: true
+    promotion_evaluate: true
+
+  - id: final_comparison
+    kind: comparison
+    fatal: true
+    configs:
+      - configs/m1_yolo11_sort_smoke.yaml
+      - configs/m2_yolo26_bytetrack_smoke.yaml
+      - configs/m3_rtdetr_botsort_smoke.yaml
+      - configs/overnight/m4_sahi_m2_slice640_overlap020.yaml
+    sequences: all
+    max_frames: null
+    save_video: false
+    evaluate: true
+    reuse_prior_full_runs: true
+    sources:
+      - label: m1_baseline
+        stage: full_baseline_m1_m2_m3
+        config_name: m1_yolo11_sort_smoke
+      - label: m2_best
+        select_from: tune_m2
+        fallback:
+          stage: full_baseline_m1_m2_m3
+          config_name: m2_yolo26_bytetrack_smoke
+      - label: m3_best
+        select_from: tune_m3
+        fallback:
+          stage: full_baseline_m1_m2_m3
+          config_name: m3_rtdetr_botsort_smoke
+      - label: m4_sahi_best
+        select_from: sahi_m4_best_effort
+        optional: true

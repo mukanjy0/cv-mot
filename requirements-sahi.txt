@@ -1,0 +1,3 @@
+# Optional Method 4 sliced inference. Keep separate so SAHI failures do not
+# block installation or execution of Methods 1-3.
+sahi

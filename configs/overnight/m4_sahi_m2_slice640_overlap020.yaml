@@ -1,0 +1,26 @@
+name: m4_sahi_m2_slice640_overlap020
+
+detector:
+  type: sahi_ultralytics_yolo
+  model_path: yolo26n.pt
+  imgsz: 640
+  conf: 0.35
+  device: auto
+  slice_height: 640
+  slice_width: 640
+  overlap_height_ratio: 0.20
+  overlap_width_ratio: 0.20
+  perform_standard_pred: false
+  postprocess_type: GREEDYNMM
+  postprocess_match_metric: IOU
+  postprocess_match_threshold: 0.50
+  coco_to_visdrone: {0: 1, 2: 4}
+  allowed_classes: [1, 4]
+
+tracker:
+  type: bytetrack
+  min_conf: 0.10
+  track_thresh: 0.25
+  match_thresh: 0.80
+  track_buffer: 30
+  frame_rate: 30

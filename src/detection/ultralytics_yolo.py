@@ -4,12 +4,12 @@ from typing import Any
 
 import numpy as np
 
+from src.core.device import resolve_device
 from src.core.types import Detection
 from src.detection.base import Detector
 from src.detection.ultralytics_common import (
     detections_from_ultralytics_result,
     parse_class_mapping,
-    resolve_device,
 )
 
 
