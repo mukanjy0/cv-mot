@@ -4,11 +4,15 @@ __pycache__/
 
 # Local datasets and model weights can be large.
 VisDrone2019-MOT-val/
+VisDrone2019-MOT-val/videos/
 *.pt
 
 # Generated experiment artifacts.
+outputs/runs/*
 outputs/tracks/*/
 outputs/videos/*/
+outputs/benchmarks/*/
+outputs/evaluation/*/
 
 # macOS
 .DS_Store

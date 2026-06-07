@@ -45,6 +45,8 @@ def run_sequence(
     max_frames: int | None = None,
     save_video: bool = False,
     video_fps: float = 30.0,
+    tracks_path: str | Path | None = None,
+    video_path: str | Path | None = None,
 ) -> dict[str, Any]:
     config = load_config(config_path)
     experiment_name = config["name"]
@@ -54,15 +56,23 @@ def run_sequence(
     tracker = build_tracker(config["tracker"])
 
     output_config = config.get("output", {})
-    tracks_path = (
-        Path(output_config.get("tracks_dir", "outputs/tracks"))
-        / experiment_name
-        / f"{sequence_name}.txt"
+    resolved_tracks_path = (
+        Path(tracks_path)
+        if tracks_path is not None
+        else (
+            Path(output_config.get("tracks_dir", "outputs/tracks"))
+            / experiment_name
+            / f"{sequence_name}.txt"
+        )
     )
-    video_path = (
-        Path(output_config.get("videos_dir", "outputs/videos"))
-        / experiment_name
-        / f"{sequence_name}.mp4"
+    resolved_video_path = (
+        Path(video_path)
+        if video_path is not None
+        else (
+            Path(output_config.get("videos_dir", "outputs/videos"))
+            / experiment_name
+            / f"{sequence_name}.mp4"
+        )
     )
 
     tracks_by_frame: dict[int, list[Track]] = {}
@@ -96,13 +106,15 @@ def run_sequence(
             if save_video:
                 if video_sink is None:
                     height, width = frame_bgr.shape[:2]
-                    video_sink = VideoSink(video_path, (width, height), fps=video_fps)
+                    video_sink = VideoSink(
+                        resolved_video_path, (width, height), fps=video_fps
+                    )
                 video_sink.write(draw_tracks(frame_bgr, tracks))
     finally:
         if video_sink is not None:
             video_sink.close()
 
-    write_tracks_mot(tracks_path, tracks_by_frame)
+    write_tracks_mot(resolved_tracks_path, tracks_by_frame)
 
     unique_track_ids = {
         track.track_id for frame_tracks in tracks_by_frame.values() for track in frame_tracks
@@ -117,8 +129,8 @@ def run_sequence(
         "track_rows": sum(len(v) for v in tracks_by_frame.values()),
         "runtime_seconds": processing_seconds,
         "fps": fps,
-        "tracks_path": tracks_path,
-        "video_path": video_path if save_video else None,
+        "tracks_path": resolved_tracks_path,
+        "video_path": resolved_video_path if save_video else None,
     }
 
 

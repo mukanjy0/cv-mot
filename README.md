@@ -12,9 +12,9 @@ The pipeline is intentionally split into separate stages:
 5. Write MOT-format prediction rows.
 6. Optionally write an MP4 visualization.
 
-This first implementation smoke-tests Method 1: YOLOv11 + SORT. It does not
-implement SAHI or motmetrics yet. Method 2 and Method 3 configs are included
-for YOLO26 + ByteTrack and RT-DETR + BoT-SORT visual testing.
+The project includes Method 1 (YOLOv11 + SORT), Method 2 (YOLO26 +
+ByteTrack), and Method 3 (RT-DETR + BoT-SORT), plus representative benchmark
+and MOT evaluation wrappers. SAHI and hyperparameter tuning are not included.
 
 ## Dataset Layout
 
@@ -85,6 +85,27 @@ On first use, Ultralytics may download model weights such as `yolo11n.pt`,
 Additional visual testing commands for Method 1, Method 2, Method 3, longer
 runs, full sequences, and side-by-side videos are in
 [`docs/testing_commands.md`](docs/testing_commands.md).
+
+## Representative Benchmark and Evaluation
+
+Run all three methods on the five representative sequences and evaluate the
+first 300 frames:
+
+```bash
+python -m src.experiments.run_benchmark \
+  --dataset-root VisDrone2019-MOT-val \
+  --configs \
+    configs/m1_yolo11_sort_smoke.yaml \
+    configs/m2_yolo26_bytetrack_smoke.yaml \
+    configs/m3_rtdetr_botsort_smoke.yaml \
+  --max-frames 300 \
+  --save-video \
+  --evaluate
+```
+
+Benchmark outputs are saved under `outputs/benchmarks/<run_id>/`. See
+[`docs/evaluation.md`](docs/evaluation.md) for the full output layout,
+evaluation-only commands, metric definitions, and explicit sequence selection.
 
 ## Classes
 
