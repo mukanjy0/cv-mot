@@ -9,10 +9,21 @@ from src.tracking.base import Tracker
 from src.tracking.boxmot_adapter import (
     boxmot_output_to_tracks,
     detections_to_boxmot_array,
-    import_boxmot_class,
-    instantiate_boxmot_tracker,
     update_boxmot_tracker,
 )
+
+
+def _import_bytetrack() -> type[Any]:
+    try:
+        from boxmot.trackers.bbox.bytetrack.bytetrack import ByteTrack
+    except ImportError as exc:
+        raise ImportError(
+            "Method 2 requires BoxMOT's ByteTrack implementation at "
+            "`boxmot.trackers.bbox.bytetrack.bytetrack.ByteTrack`. Install "
+            "the optional dependencies with "
+            "`python -m pip install -r requirements-trackers.txt`."
+        ) from exc
+    return ByteTrack
 
 
 class ByteTrackTracker(Tracker):
@@ -20,33 +31,29 @@ class ByteTrackTracker(Tracker):
 
     def __init__(
         self,
-        track_high_thresh: float = 0.25,
-        track_low_thresh: float = 0.10,
-        new_track_thresh: float = 0.25,
-        track_buffer: int = 30,
+        min_conf: float = 0.10,
+        track_thresh: float = 0.25,
         match_thresh: float = 0.80,
-        fuse_score: bool = True,
+        track_buffer: int = 30,
+        frame_rate: int = 30,
     ) -> None:
-        tracker_cls = import_boxmot_class(("ByteTrack", "BYTETracker", "ByteTracker"))
-        params = {
-            "track_high_thresh": float(track_high_thresh),
-            "track_low_thresh": float(track_low_thresh),
-            "new_track_thresh": float(new_track_thresh),
-            "track_buffer": int(track_buffer),
-            "match_thresh": float(match_thresh),
-            "fuse_score": bool(fuse_score),
-        }
-        self.tracker = instantiate_boxmot_tracker(tracker_cls, params)
+        tracker_cls = _import_bytetrack()
+        self.tracker = tracker_cls(
+            min_conf=float(min_conf),
+            track_thresh=float(track_thresh),
+            match_thresh=float(match_thresh),
+            track_buffer=int(track_buffer),
+            frame_rate=int(frame_rate),
+        )
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> "ByteTrackTracker":
         return cls(
-            track_high_thresh=float(config.get("track_high_thresh", 0.25)),
-            track_low_thresh=float(config.get("track_low_thresh", 0.10)),
-            new_track_thresh=float(config.get("new_track_thresh", 0.25)),
-            track_buffer=int(config.get("track_buffer", 30)),
+            min_conf=float(config.get("min_conf", 0.10)),
+            track_thresh=float(config.get("track_thresh", 0.25)),
             match_thresh=float(config.get("match_thresh", 0.80)),
-            fuse_score=bool(config.get("fuse_score", True)),
+            track_buffer=int(config.get("track_buffer", 30)),
+            frame_rate=int(config.get("frame_rate", 30)),
         )
 
     def update(

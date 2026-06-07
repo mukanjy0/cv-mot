@@ -32,9 +32,10 @@ def import_boxmot_class(class_names: tuple[str, ...]) -> type[Any]:
         import boxmot
     except ImportError as exc:
         raise ImportError(
-            "BoxMOT is required for this tracker. Install it with "
-            "`pip install boxmot`, or install all project dependencies with "
-            "`pip install -r requirements.txt`. Method 1 does not require BoxMOT."
+            "This tracker requires the optional BoxMOT dependencies. Install "
+            "them with `python -m pip install -r requirements-trackers.txt` "
+            "using Python 3.12 or 3.13. Method 1 (YOLO + SORT) does not require "
+            "BoxMOT."
         ) from exc
 
     for class_name in class_names:

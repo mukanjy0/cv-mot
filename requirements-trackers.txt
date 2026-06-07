@@ -1,0 +1,6 @@
+# Optional BoxMOT-backed ByteTrack and BoT-SORT adapters.
+#
+# BoxMOT does not currently publish a Python 3.14-compatible release. On
+# Python 3.14 this marker intentionally skips installation; use Python 3.12 or
+# 3.13 in a separate virtual environment when these trackers are required.
+boxmot; python_version < "3.14"

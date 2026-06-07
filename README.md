@@ -40,12 +40,23 @@ detection or tracking; they are reserved for a later evaluation step.
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements.txt
 ```
 
-For CUDA, install a PyTorch build that matches your GPU before or alongside
-Ultralytics. CPU runs work too, just slower.
+On Windows, activate with `.venv\Scripts\activate` instead. The core
+requirements support Method 1 (YOLOv11 + SORT) and CPU execution.
+
+ByteTrack and BoT-SORT use optional BoxMOT dependencies:
+
+```bash
+python -m pip install -r requirements-trackers.txt
+```
+
+Use Python 3.12 or 3.13 for BoxMOT. Its published dependency constraints are
+not currently compatible with Python 3.14. See
+[`docs/environment_setup.md`](docs/environment_setup.md) for details.
 
 ## Smoke Test
 
@@ -115,11 +126,15 @@ Visualization videos are written to:
 outputs/videos/<experiment_name>/<sequence_name>.mp4
 ```
 
-## Troubleshooting
+## If Installation Fails
 
-- If `ultralytics` is missing, run `pip install -r requirements.txt`.
-- If `boxmot` is missing, Method 1 still works, but Method 2 and Method 3 need
-  `pip install boxmot` or `pip install -r requirements.txt`.
+- Confirm the virtual environment is active with `which python` (macOS/Linux)
+  or `where python` (Windows).
+- Use `python -m pip`, not bare `pip`, so packages go to the active interpreter.
+- Install tracker extras separately with
+  `python -m pip install -r requirements-trackers.txt`.
+- Method 1 works without BoxMOT. Methods 2 and 3 require the optional tracker
+  environment and Python 3.12 or 3.13.
 - If model weights cannot download, place a local model file somewhere and set
   `detector.model_path` in the YAML config to that path.
 - If GPU execution fails, set `detector.device: cpu` and `half: false`.

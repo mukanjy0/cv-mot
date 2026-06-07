@@ -74,7 +74,8 @@ def run_sequence(
     except ImportError as exc:
         raise ImportError(
             "tqdm is required for progress reporting. "
-            "Install dependencies with: pip install -r requirements.txt"
+            "Install dependencies with: "
+            "python -m pip install -r requirements.txt"
         ) from exc
 
     if save_video:

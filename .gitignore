@@ -9,3 +9,7 @@ VisDrone2019-MOT-val/
 # Generated experiment artifacts.
 outputs/tracks/*/
 outputs/videos/*/
+
+# macOS
+.DS_Store
+**/.DS_Store

@@ -15,12 +15,11 @@ detector:
 
 tracker:
   type: bytetrack
-  track_high_thresh: 0.25
-  track_low_thresh: 0.10
-  new_track_thresh: 0.25
-  track_buffer: 30
+  min_conf: 0.10
+  track_thresh: 0.25
   match_thresh: 0.80
-  fuse_score: true
+  track_buffer: 30
+  frame_rate: 30
 
 output:
   tracks_dir: outputs/tracks
