@@ -8,6 +8,7 @@ VisDrone2019-MOT-val/videos/
 *.pt
 
 # Generated experiment artifacts.
+presentation_assets/*
 outputs/runs/*
 outputs/tracks/*/
 outputs/videos/*/
