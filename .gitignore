@@ -14,6 +14,7 @@ outputs/videos/*/
 outputs/benchmarks/*/
 outputs/evaluation/*/
 outputs/overnight/*/
+outputs/next_experiments/*/
 
 # macOS
 .DS_Store

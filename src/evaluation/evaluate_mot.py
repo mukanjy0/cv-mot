@@ -5,7 +5,7 @@ import csv
 import json
 import math
 import warnings
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -372,6 +372,103 @@ def _summary_by_sequence(
     return result
 
 
+def _median_bbox_area(objects_by_frame: Mapping[int, FrameObjects]) -> float | None:
+    areas: list[float] = []
+    for objects in objects_by_frame.values():
+        if len(objects.boxes) == 0:
+            continue
+        areas.extend((objects.boxes[:, 2] * objects.boxes[:, 3]).astype(float).tolist())
+    if not areas:
+        return None
+    return float(np.median(np.asarray(areas, dtype=float)))
+
+
+def _track_length_stats(
+    predictions: Mapping[int, FrameObjects],
+) -> tuple[int, int, float | None]:
+    counts: Counter[int] = Counter()
+    for objects in predictions.values():
+        counts.update(int(track_id) for track_id in objects.ids)
+    if not counts:
+        return 0, 0, None
+    lengths = np.asarray(list(counts.values()), dtype=float)
+    short_tracks = int(np.sum(lengths <= 3))
+    return len(counts), short_tracks, float(np.mean(lengths))
+
+
+def _matched_count_by_class(
+    ground_truth: Mapping[int, FrameObjects],
+    predictions: Mapping[int, FrameObjects],
+    *,
+    num_frames: int,
+    cls: int,
+) -> tuple[int, int]:
+    matched = 0
+    total_gt = 0
+    for frame_id in range(1, num_frames + 1):
+        gt = ground_truth.get(frame_id, _empty_frame())
+        pred = predictions.get(frame_id, _empty_frame())
+        gt_mask = gt.classes == cls
+        pred_mask = pred.classes == cls
+        gt_boxes = gt.boxes[gt_mask]
+        pred_boxes = pred.boxes[pred_mask]
+        total_gt += int(len(gt_boxes))
+        if len(gt_boxes) == 0 or len(pred_boxes) == 0:
+            continue
+
+        distances = _iou_distance_matrix(gt_boxes, pred_boxes)
+        candidate_pairs: list[tuple[float, int, int]] = []
+        for gt_idx in range(distances.shape[0]):
+            for pred_idx in range(distances.shape[1]):
+                distance = distances[gt_idx, pred_idx]
+                if np.isfinite(distance):
+                    candidate_pairs.append((1.0 - float(distance), gt_idx, pred_idx))
+        used_gt: set[int] = set()
+        used_pred: set[int] = set()
+        for _iou, gt_idx, pred_idx in sorted(candidate_pairs, reverse=True):
+            if gt_idx in used_gt or pred_idx in used_pred:
+                continue
+            used_gt.add(gt_idx)
+            used_pred.add(pred_idx)
+            matched += 1
+    return matched, total_gt
+
+
+def _diagnostic_row(
+    *,
+    method: str,
+    sequence_name: str,
+    metrics_row: Mapping[str, Any],
+    ground_truth: Mapping[int, FrameObjects],
+    predictions: Mapping[int, FrameObjects],
+    num_frames: int,
+    prediction_path: Path,
+) -> dict[str, Any]:
+    unique_ids, short_tracks, average_track_length = _track_length_stats(predictions)
+    car_matches, car_gt = _matched_count_by_class(
+        ground_truth, predictions, num_frames=num_frames, cls=4
+    )
+    return {
+        "method": method,
+        "sequence_name": sequence_name,
+        "MOTA": metrics_row.get("MOTA"),
+        "IDF1": metrics_row.get("IDF1"),
+        "FP": metrics_row.get("FP"),
+        "FN": metrics_row.get("FN"),
+        "IDS": metrics_row.get("IDS"),
+        "FPS": metrics_row.get("FPS"),
+        "unique_predicted_ids": unique_ids,
+        "short_tracks_leq_3": short_tracks,
+        "average_predicted_track_length": average_track_length,
+        "median_predicted_bbox_area": _median_bbox_area(predictions),
+        "median_gt_bbox_area": _median_bbox_area(ground_truth),
+        "car_recall_proxy": car_matches / car_gt if car_gt > 0 else None,
+        "car_gt_boxes": car_gt,
+        "car_matched_predicted_boxes": car_matches,
+        "prediction_path": str(prediction_path.resolve()),
+    }
+
+
 def evaluate_mot(
     *,
     dataset_root: str | Path,
@@ -406,6 +503,7 @@ def evaluate_mot(
     }
 
     per_sequence_rows: list[dict[str, Any]] = []
+    diagnostic_rows: list[dict[str, Any]] = []
     summary_rows: list[dict[str, Any]] = []
     metric_host = mm.metrics.create()
 
@@ -442,6 +540,17 @@ def evaluate_mot(
                 "prediction_path": str(prediction_path.resolve()),
             }
             per_sequence_rows.append(row)
+            diagnostic_rows.append(
+                _diagnostic_row(
+                    method=method,
+                    sequence_name=sequence,
+                    metrics_row=row,
+                    ground_truth=ground_truth[sequence],
+                    predictions=predictions,
+                    num_frames=frame_counts[sequence],
+                    prediction_path=prediction_path,
+                )
+            )
             if runtime is not None and runtime > 0:
                 runtimes.append(runtime)
                 runtime_frames += frame_counts[sequence]
@@ -472,6 +581,7 @@ def evaluate_mot(
     _write_csv(output_path / "summary_metrics.csv", summary_rows)
     _write_csv(output_path / "summary_by_method.csv", summary_rows)
     _write_csv(output_path / "summary_by_sequence.csv", sequence_summary_rows)
+    _write_csv(output_path / "mot_diagnostics_by_sequence.csv", diagnostic_rows)
 
     payload = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -484,6 +594,7 @@ def evaluate_mot(
         "per_sequence": per_sequence_rows,
         "summary_by_method": summary_rows,
         "summary_by_sequence": sequence_summary_rows,
+        "mot_diagnostics_by_sequence": diagnostic_rows,
     }
     (output_path / "summary_metrics.json").write_text(
         json.dumps(payload, indent=2, allow_nan=False) + "\n",

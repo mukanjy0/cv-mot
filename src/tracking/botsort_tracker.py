@@ -26,6 +26,15 @@ def _import_botsort() -> type[Any]:
     return BotSort
 
 
+def _parse_cmc_method(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text.lower() in {"", "none", "off", "false", "disabled", "null"}:
+        return None
+    return text
+
+
 class BotSortTracker(Tracker):
     """BoT-SORT adapter backed by BoxMOT.
 
@@ -43,7 +52,7 @@ class BotSortTracker(Tracker):
         proximity_thresh: float = 0.50,
         appearance_thresh: float = 0.25,
         with_reid: bool = False,
-        cmc_method: str = "sof",
+        cmc_method: str | None = "sof",
         frame_rate: int = 30,
         fuse_first_associate: bool = True,
     ) -> None:
@@ -57,7 +66,7 @@ class BotSortTracker(Tracker):
             proximity_thresh=float(proximity_thresh),
             appearance_thresh=float(appearance_thresh),
             with_reid=bool(with_reid),
-            cmc_method=cmc_method,
+            cmc_method=_parse_cmc_method(cmc_method),
             frame_rate=int(frame_rate),
             fuse_first_associate=bool(fuse_first_associate),
         )
@@ -73,7 +82,7 @@ class BotSortTracker(Tracker):
             proximity_thresh=float(config.get("proximity_thresh", 0.50)),
             appearance_thresh=float(config.get("appearance_thresh", 0.25)),
             with_reid=bool(config.get("with_reid", False)),
-            cmc_method=str(config.get("cmc_method", "sof")),
+            cmc_method=_parse_cmc_method(config.get("cmc_method", "sof")),
             frame_rate=int(config.get("frame_rate", 30)),
             fuse_first_associate=bool(config.get("fuse_first_associate", True)),
         )

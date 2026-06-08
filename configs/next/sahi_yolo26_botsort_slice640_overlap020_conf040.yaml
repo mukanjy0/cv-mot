@@ -1,0 +1,33 @@
+name: sahi_yolo26_botsort_slice640_overlap020_conf040
+
+detector:
+  type: sahi_ultralytics_yolo
+  model_path: yolo26n.pt
+  imgsz: 640
+  conf: 0.40
+  device: auto
+  slice_height: 640
+  slice_width: 640
+  overlap_height_ratio: 0.20
+  overlap_width_ratio: 0.20
+  perform_standard_pred: false
+  postprocess_type: NMS
+  postprocess_match_metric: IOU
+  postprocess_match_threshold: 0.45
+  min_bbox_area: 20
+  coco_to_visdrone: {0: 1, 2: 4}
+  allowed_classes: [1, 4]
+
+tracker:
+  type: botsort
+  track_high_thresh: 0.40
+  track_low_thresh: 0.20
+  new_track_thresh: 0.50
+  track_buffer: 20
+  match_thresh: 0.80
+  proximity_thresh: 0.50
+  appearance_thresh: 0.25
+  with_reid: false
+  cmc_method: sof
+  frame_rate: 30
+  fuse_first_associate: true

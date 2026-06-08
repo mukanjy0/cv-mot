@@ -63,10 +63,19 @@ class EvaluateMotTest(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["sequence_name"], sequence)
 
+            with (output_dir / "mot_diagnostics_by_sequence.csv").open(
+                encoding="utf-8", newline=""
+            ) as handle:
+                diagnostic_rows = list(csv.DictReader(handle))
+            self.assertEqual(len(diagnostic_rows), 1)
+            self.assertEqual(diagnostic_rows[0]["unique_predicted_ids"], "1")
+            self.assertEqual(diagnostic_rows[0]["short_tracks_leq_3"], "1")
+
             payload = json.loads(
                 (output_dir / "summary_metrics.json").read_text(encoding="utf-8")
             )
             self.assertEqual(payload["classes"], [1, 4])
+            self.assertIn("mot_diagnostics_by_sequence", payload)
 
     def test_missing_selected_prediction_is_an_error(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:

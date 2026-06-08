@@ -1,0 +1,26 @@
+name: yolo26_botsort_gmc_on
+
+detector:
+  type: ultralytics_yolo
+  model_path: yolo26n.pt
+  imgsz: 960
+  conf: 0.35
+  iou: 0.70
+  device: auto
+  half: false
+  coco_to_visdrone: {0: 1, 2: 4}
+  allowed_classes: [1, 4]
+
+tracker:
+  type: botsort
+  track_high_thresh: 0.25
+  track_low_thresh: 0.10
+  new_track_thresh: 0.35
+  track_buffer: 30
+  match_thresh: 0.80
+  proximity_thresh: 0.50
+  appearance_thresh: 0.25
+  with_reid: false
+  cmc_method: sof
+  frame_rate: 30
+  fuse_first_associate: true

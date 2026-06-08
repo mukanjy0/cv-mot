@@ -42,6 +42,7 @@ outputs/benchmarks/<run_id>/
     summary_metrics.csv
     summary_by_method.csv
     summary_by_sequence.csv
+    mot_diagnostics_by_sequence.csv
     summary_metrics.json
 ```
 
@@ -51,6 +52,11 @@ method. `summary_by_sequence.csv` is a wide comparison table with method
 metrics grouped by sequence. `summary_metrics.json` contains all tables plus
 the evaluation settings. FPS is populated when prediction files have adjacent
 benchmark metadata.
+
+`mot_diagnostics_by_sequence.csv` adds one row per method and sequence with
+MOTA, IDF1, FP, FN, IDS, FPS, unique predicted IDs, tracks with length <= 3
+frames, average predicted track length, median predicted bbox area, median GT
+bbox area, and a car recall proxy computed from class-4 track/GT IoU matches.
 
 ## Evaluate existing tracks
 
@@ -81,3 +87,51 @@ frame,id,bb_left,bb_top,bb_width,bb_height,conf,class,vis
 Matching uses IoU distance with a `0.5` threshold and prevents matches across
 classes. MOTA, MOTP, IDF1, IDP, IDR, FP, FN, IDS, and frame count follow
 `motmetrics`; MOTP therefore uses its distance convention.
+
+## Detection-only diagnostics
+
+Evaluate detector outputs before tracking:
+
+```bash
+python -m src.evaluation.evaluate_detection \
+  --dataset-root VisDrone2019-MOT-val \
+  --configs \
+    configs/overnight/m2_yolo26_bytetrack_conf035.yaml \
+    configs/overnight/m3_rtdetr_botsort_conf055.yaml \
+  --sequences \
+    uav0000137_00458_v \
+    uav0000305_00000_v \
+  --output-dir outputs/evaluation/detection_only \
+  --device mps
+```
+
+The evaluator runs `model.predict()` through the project detector wrappers and
+does not use `model.track()` or the dataset `det/` folder. It writes:
+
+```text
+detection_summary_by_method.csv
+detection_summary_by_sequence.csv
+detection_summary_by_class.csv
+detection_summary.json
+```
+
+Metrics are computed for VisDrone classes `1` and `4` only. Matching is
+one-to-one per frame and class at IoU 0.50, greedily ordered by detector
+confidence. AP50 is an all-point interpolated precision-envelope area over the
+confidence-ranked predictions.
+
+## Next experiment suite
+
+The end-to-end next-step entrypoint is:
+
+```bash
+python run_next_experiments.py \
+  --dataset VisDrone2019-MOT-val \
+  --device mps
+```
+
+It is resumable under `outputs/next_experiments/default/`, writes per-command
+logs, and produces final method/sequence summaries, detection diagnostics,
+MOT diagnostics, `gmc_ablation_summary.csv`, and `next_experiments_report.md`.
+Use `--render-debug` to create optional GT-vs-track MP4s for selected
+sequences, including `uav0000305_00000_v`.

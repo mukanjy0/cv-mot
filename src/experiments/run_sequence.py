@@ -14,6 +14,7 @@ from src.detection.base import Detector
 from src.detection.sahi_ultralytics_yolo import SahiUltralyticsYoloDetector
 from src.detection.ultralytics_rtdetr import UltralyticsRtDetrDetector
 from src.detection.ultralytics_yolo import UltralyticsYoloDetector
+from src.detection.upscaled_detector import UpscaledDetector
 from src.tracking.base import Tracker
 from src.tracking.botsort_tracker import BotSortTracker
 from src.tracking.bytetrack_tracker import ByteTrackTracker
@@ -28,6 +29,11 @@ def build_detector(config: dict[str, Any]) -> Detector:
         return SahiUltralyticsYoloDetector.from_config(config)
     if detector_type == "ultralytics_rtdetr":
         return UltralyticsRtDetrDetector.from_config(config)
+    if detector_type in {"upscaled", "upscaled_detector"}:
+        inner_config = config.get("detector")
+        if not isinstance(inner_config, dict):
+            raise ValueError("Upscaled detector config requires nested detector mapping")
+        return UpscaledDetector.from_config(config, build_detector(inner_config))
     raise ValueError(f"Unsupported detector type: {detector_type}")
 
 

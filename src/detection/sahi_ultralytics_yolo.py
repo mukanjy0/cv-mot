@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 
-from src.core.bbox import as_xyxy_array
+from src.core.bbox import area_xyxy, as_xyxy_array
 from src.core.device import resolve_device
 from src.core.types import Detection
 from src.detection.base import Detector
@@ -28,6 +28,7 @@ class SahiUltralyticsYoloDetector(Detector):
         postprocess_type: str = "GREEDYNMM",
         postprocess_match_metric: str = "IOU",
         postprocess_match_threshold: float = 0.50,
+        min_bbox_area: float = 0.0,
         coco_to_visdrone: dict[int, int] | None = None,
         allowed_classes: list[int] | None = None,
     ) -> None:
@@ -58,6 +59,9 @@ class SahiUltralyticsYoloDetector(Detector):
         self.postprocess_type = postprocess_type
         self.postprocess_match_metric = postprocess_match_metric
         self.postprocess_match_threshold = float(postprocess_match_threshold)
+        self.min_bbox_area = float(min_bbox_area)
+        if self.min_bbox_area < 0:
+            raise ValueError("min_bbox_area must be non-negative")
 
         mapping_config = {
             "coco_to_visdrone": coco_to_visdrone or {0: 1, 2: 4},
@@ -92,6 +96,7 @@ class SahiUltralyticsYoloDetector(Detector):
             postprocess_match_threshold=float(
                 config.get("postprocess_match_threshold", 0.50)
             ),
+            min_bbox_area=float(config.get("min_bbox_area", 0.0)),
             coco_to_visdrone=config.get("coco_to_visdrone"),
             allowed_classes=config.get("allowed_classes"),
         )
@@ -115,14 +120,20 @@ class SahiUltralyticsYoloDetector(Detector):
         )
 
         detections: list[Detection] = []
+        height, width = frame_bgr.shape[:2]
         for prediction in result.object_prediction_list:
             visdrone_cls = self.coco_to_visdrone.get(int(prediction.category.id))
             if visdrone_cls is None or visdrone_cls not in self.allowed_classes:
                 continue
+            xyxy = as_xyxy_array(prediction.bbox.to_xyxy())
+            xyxy[[0, 2]] = np.clip(xyxy[[0, 2]], 0.0, float(width))
+            xyxy[[1, 3]] = np.clip(xyxy[[1, 3]], 0.0, float(height))
+            if area_xyxy(xyxy) < self.min_bbox_area:
+                continue
             detections.append(
                 Detection(
                     frame_id=frame_id,
-                    xyxy=as_xyxy_array(prediction.bbox.to_xyxy()),
+                    xyxy=xyxy,
                     conf=float(prediction.score.value),
                     cls=int(visdrone_cls),
                 )

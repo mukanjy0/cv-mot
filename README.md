@@ -116,6 +116,70 @@ Benchmark outputs are saved under `outputs/benchmarks/<run_id>/`. See
 [`docs/evaluation.md`](docs/evaluation.md) for the full output layout,
 evaluation-only commands, metric definitions, and explicit sequence selection.
 
+## Next-Step Diagnostics and Experiments
+
+Run the compact improvement-oriented suite:
+
+```bash
+python run_next_experiments.py \
+  --dataset VisDrone2019-MOT-val \
+  --device mps
+```
+
+By default this runs all validation sequences and writes a resumable directory
+under `outputs/next_experiments/default/`. Re-running the same command skips
+completed attempts; pass `--force` to create new attempts. For a faster
+multi-sequence check that still includes `uav0000305_00000_v`, add
+`--representative`. For a smoke run, add `--max-frames N`.
+
+The suite runs, in order:
+
+- detection-only diagnostics for current YOLO26 and RT-DETR configs
+- M3 RT-DETR + BoT-SORT confidence checks around 0.50, 0.55, 0.60, and 0.65
+- small-object upscaling experiments
+- stricter SAHI + BoT-SORT experiments
+- BoT-SORT camera-motion compensation on/off ablations
+- final CSV summaries and `next_experiments_report.md`
+
+Optional GT-vs-prediction debug videos can be rendered without making video
+generation part of the main run:
+
+```bash
+python run_next_experiments.py \
+  --dataset VisDrone2019-MOT-val \
+  --device mps \
+  --render-debug
+```
+
+Key outputs:
+
+```text
+outputs/next_experiments/default/
+  logs/
+  stages/
+  summaries/
+    detection_summary_by_method.csv
+    detection_summary_by_sequence.csv
+    detection_summary_by_class.csv
+    final_summary_by_method.csv
+    final_summary_by_sequence.csv
+    mot_diagnostics_by_sequence.csv
+    gmc_ablation_summary.csv
+    next_experiments_report.md
+  next_experiments_report.md
+```
+
+Detection-only metrics match detector boxes to GT frame-by-frame and class-by-
+class at IoU 0.50. The CSVs report GT boxes, predicted boxes, TP, FP, FN,
+precision, recall, and AP50 using an all-point interpolated precision envelope.
+
+Upscaling configs wrap the detector: frames are resized before detection, boxes
+are scaled back to original coordinates, and the normal tracker receives those
+boxes. SAHI strict configs use full-frame coordinate outputs from SAHI, final
+NMS slice merging, class mapping to VisDrone classes 1 and 4, minimum bbox-area
+filtering, and stricter BoT-SORT new-track thresholds. GMC ablation configs use
+the same BoT-SORT settings except `cmc_method: sof` versus `cmc_method: null`.
+
 ## Overnight Experiments
 
 Validate the staged queue without running inference:
