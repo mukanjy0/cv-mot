@@ -1,22 +1,77 @@
+# Python environments and caches
 .venv/
+.venv*/
+venv/
+env/
 __pycache__/
+**/__pycache__/
 *.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
-# Local datasets and model weights can be large.
-VisDrone2019-MOT-val/
-VisDrone2019-MOT-val/videos/
-*.pt
+# Local machine configuration
+.env
+.env.*
+!.env.example
 
-# Generated experiment artifacts.
-presentation_assets/*
-outputs/runs/*
-outputs/tracks/*/
-outputs/videos/*/
-outputs/benchmarks/*/
-outputs/evaluation/*/
-outputs/overnight/*/
-outputs/next_experiments/*/
-
-# macOS
+# OS/editor noise
 .DS_Store
 **/.DS_Store
+.idea/
+.vscode/
+
+# Local datasets
+VisDrone2019-MOT-val/
+data/
+datasets/
+
+# Model weights and exported inference artifacts
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.engine
+*.mlmodel
+*.tflite
+
+# Generated experiment artifacts
+outputs/*
+!outputs/tracks/
+outputs/tracks/*
+!outputs/tracks/.gitkeep
+!outputs/videos/
+outputs/videos/*
+!outputs/videos/.gitkeep
+presentation_assets/
+wandb/
+mlruns/
+lightning_logs/
+
+# Generated media/debug renders
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# Generated presentation/build artifacts
+slides/*.aux
+slides/*.bbl
+slides/*.bcf
+slides/*.blg
+slides/*.fdb_latexmk
+slides/*.fls
+slides/*.log
+slides/*.nav
+slides/*.out
+slides/*.run.xml
+slides/*.snm
+slides/*.synctex.gz
+slides/*.toc
+
+# Duplicate/generated report exports
+results/main.pdf
